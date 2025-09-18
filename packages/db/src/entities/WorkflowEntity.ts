@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { BaseEntity } from './BaseEntity';
-import type { INode, IConnections } from '../interfaces';
+import type { INode, IConnections } from '@repo/types';
 
 export enum WorkflowStatus {
   ACTIVE = 'ACTIVE',

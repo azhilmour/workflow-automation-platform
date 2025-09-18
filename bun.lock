@@ -33,6 +33,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@repo/db": "*",
+        "@repo/types": "*",
         "argon2": "^0.44.0",
         "jsonwebtoken": "^9.0.2",
       },
@@ -69,6 +70,7 @@
       "name": "@repo/db",
       "version": "0.0.0",
       "dependencies": {
+        "@repo/types": "*",
         "reflect-metadata": "^0.2.2",
         "typeorm": "^0.3.26",
       },
