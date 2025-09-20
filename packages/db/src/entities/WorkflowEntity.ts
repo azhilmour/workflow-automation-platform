@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { BaseEntity } from './BaseEntity';
 import type { INode, IConnections } from '@repo/types';
+import { User } from './User';
 
 export enum WorkflowStatus {
   ACTIVE = 'ACTIVE',
@@ -13,7 +14,7 @@ export class WorkflowEntity extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ length: 128, unique: true })
+  @Column({ length: 128 })
   name!: string;
 
   @Column({
@@ -31,4 +32,7 @@ export class WorkflowEntity extends BaseEntity {
 
   @Column({ default: 0 })
   triggerCount!: number;
+
+  @ManyToOne(() => User, (user) => user.workflows)
+  user!: User;
 }

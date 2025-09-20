@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity';
+import { WorkflowEntity } from './WorkflowEntity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -17,4 +18,7 @@ export class User extends BaseEntity {
 
   @Column()
   lastName!: string;
+
+  @OneToMany(() => WorkflowEntity, (workflow) => workflow.user)
+  workflows!: WorkflowEntity[];
 }
