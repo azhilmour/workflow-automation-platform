@@ -19,6 +19,6 @@ export class User extends BaseEntity {
   @Column()
   lastName!: string;
 
-  @OneToMany(() => WorkflowEntity, (workflow) => workflow.user)
+  @OneToMany(() => WorkflowEntity, (workflow) => workflow.userId, { lazy: true })
   workflows!: WorkflowEntity[];
 }

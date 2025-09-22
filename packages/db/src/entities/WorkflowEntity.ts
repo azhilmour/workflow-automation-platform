@@ -1,7 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import type { IConnections, INode } from '@repo/types';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity';
-import type { INode, IConnections } from '@repo/types';
-import { User } from './User';
 
 export enum WorkflowStatus {
   ACTIVE = 'ACTIVE',
@@ -24,15 +23,15 @@ export class WorkflowEntity extends BaseEntity {
   })
   status!: WorkflowStatus;
 
-  @Column('json')
+  @Column('jsonb')
   nodes!: INode[];
 
-  @Column('json')
+  @Column('jsonb')
   connections!: IConnections;
 
   @Column({ default: 0 })
   triggerCount!: number;
 
-  @ManyToOne(() => User, (user) => user.workflows)
-  user!: User;
+  @Column({ nullable: false })
+  userId!: string;
 }
