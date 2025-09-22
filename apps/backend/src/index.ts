@@ -114,7 +114,7 @@ const routes = {
     JSON.stringify({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      service: 'executor'
+      service: 'workflow-automation-backend'
     }),
     {
       status: 200,
