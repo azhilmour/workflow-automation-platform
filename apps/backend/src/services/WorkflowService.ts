@@ -17,7 +17,7 @@ export class WorkflowService {
       nodes: workflow.nodes,
       connections: workflow.connections,
       triggerCount: workflow.triggerCount,
-      userId: workflow.user.id,
+      userId: workflow.userId,
       createdAt: workflow.createdAt,
       updatedAt: workflow.updatedAt,
     };
