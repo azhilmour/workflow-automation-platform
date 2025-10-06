@@ -1,9 +1,8 @@
 import { AppDataSource } from '@repo/db';
 import {
   WorkflowExecutionEntity,
-  ExecutionStatus,
-  type INodeExecution,
 } from '@repo/db';
+import { ExecutionStatus, INodeExecution } from '@repo/types';
 import { Repository } from 'typeorm';
 
 export class ExecutionService {

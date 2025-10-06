@@ -1,25 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity';
-
-export enum ExecutionStatus {
-  RUNNING = 'RUNNING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  PENDING = 'PENDING'
-}
-
-export interface INodeExecution {
-  nodeId: string;
-  nodeName: string;
-  nodeType: string;
-  status: 'SUCCESS' | 'FAILED' | 'SKIPPED';
-  input: any;
-  output: any;
-  error?: string;
-  startedAt: Date;
-  completedAt: Date;
-  executionTime: number; // in milliseconds
-}
+import { ExecutionStatus, INodeExecution } from '@repo/types';
 
 @Entity('workflow_executions')
 export class WorkflowExecutionEntity extends BaseEntity {

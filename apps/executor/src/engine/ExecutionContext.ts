@@ -1,5 +1,5 @@
-import type { IExecutionContext } from '../types/execution.types';
-import { ExecutionStatus } from '@repo/db';
+import type { IExecutionContext } from '@repo/types';
+import { ExecutionStatus } from '@repo/types';
 
 export class ExecutionContext implements IExecutionContext {
   executionId: string;
@@ -24,17 +24,4 @@ export class ExecutionContext implements IExecutionContext {
     this.startedAt = new Date();
     this.status = ExecutionStatus.RUNNING;
   }
-
-  setNodeOutput(nodeId: string, output: any): void {
-    this.nodeOutputs.set(nodeId, output);
-  }
-
-  getNodeOutput(nodeId: string): any {
-    return this.nodeOutputs.get(nodeId);
-  }
-
-  setStatus(status: ExecutionStatus): void {
-    this.status = status;
-  }
 }
-

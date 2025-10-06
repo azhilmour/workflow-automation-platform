@@ -1,8 +1,8 @@
 import type { INode, IConnections } from '@repo/types';
 import type { WorkflowEntity } from '@repo/db';
-import { ExecutionStatus, type INodeExecution } from '@repo/db';
+import { ExecutionStatus, type INodeExecution } from '@repo/types';
 import { ExecutionContext } from './ExecutionContext';
-import type { IExecutionContext, INodeExecutionResult } from '../types/execution.types';
+import type { IExecutionContext, INodeExecutionResult } from '@repo/types';
 import { ExecutionService } from '../services/ExecutionService';
 import { WorkflowService } from '../services/WorkflowService';
 
@@ -102,7 +102,7 @@ export class ExecutionEngine {
       );
 
       // Mark execution as completed
-      context.setStatus(ExecutionStatus.COMPLETED);
+      context.status = ExecutionStatus.COMPLETED;
       await this.executionService.completeExecution(
         context.executionId,
         ExecutionStatus.COMPLETED
@@ -111,7 +111,7 @@ export class ExecutionEngine {
       console.log(`✓ Execution ${context.executionId} completed successfully`);
     } catch (error) {
       console.error(`✗ Execution ${context.executionId} failed:`, error);
-      context.setStatus(ExecutionStatus.FAILED);
+      context.status = ExecutionStatus.FAILED;
       await this.executionService.completeExecution(
         context.executionId,
         ExecutionStatus.FAILED,
@@ -141,7 +141,7 @@ export class ExecutionEngine {
       };
 
       // Store output in context
-      context.setNodeOutput(node.id, result.output);
+      context.nodeOutputs.set(node.id, result.output);
 
       // Record node execution
       const nodeExecution: INodeExecution = {

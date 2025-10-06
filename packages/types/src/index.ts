@@ -1,3 +1,2 @@
-export * from './schemas/auth';
-export * from './schemas/workflow';
+export * from './schemas';
 export * from './interfaces';

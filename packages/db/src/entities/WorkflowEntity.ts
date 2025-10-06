@@ -1,12 +1,6 @@
-import type { IConnections, INode } from '@repo/types';
+import { type IConnections, type INode, WorkflowStatus } from '@repo/types';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity';
-
-export enum WorkflowStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  ARCHIVED = 'ARCHIVED'
-}
 
 @Entity('workflows')
 export class WorkflowEntity extends BaseEntity {
