@@ -1,5 +1,6 @@
 import { Repository } from 'typeorm';
-import { WorkflowEntity, AppDataSource, User, WorkflowStatus } from '@repo/db';
+import { WorkflowEntity, AppDataSource, User } from '@repo/db';
+import { WorkflowStatus } from '@repo/types';
 import type { CreateWorkflowInput, UpdateWorkflowInput } from '@repo/types';
 
 export class WorkflowRepository {
@@ -15,21 +16,21 @@ export class WorkflowRepository {
     workflow.status = workflowData.status as WorkflowStatus;
     workflow.nodes = workflowData.nodes as any;
     workflow.connections = workflowData.connections as any;
-    workflow.user = { id: userId } as User;
+    workflow.userId = userId;
     return await this.repository.save(workflow);
   }
 
   async findById(id: number, userId: string): Promise<WorkflowEntity | null> {
     return await this.repository.findOne({
-      where: { id, user: { id: userId } },
-      relations: ['user'],
+      where: { id, userId },
+      relations: ['userId'],
     });
   }
 
   async findAllByUserId(userId: string): Promise<WorkflowEntity[]> {
     return await this.repository.find({
-      where: { user: { id: userId } },
-      relations: ['user'],
+      where: { userId },
+      relations: ['userId'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -47,7 +48,7 @@ export class WorkflowRepository {
   async delete(id: number, userId: string): Promise<boolean> {
     const result = await this.repository.delete({
       id,
-      user: { id: userId },
+      userId,
     });
     return (result.affected ?? 0) > 0;
   }
