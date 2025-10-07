@@ -83,4 +83,16 @@ export class AuthService {
       throw new Error('Invalid token');
     }
   }
+
+  async getUserIdFromRequest(request: Request): Promise<string> {
+    // Extract user ID from JWT token in Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Authorization header missing or invalid');
+    }
+    
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const decoded = await this.verifyToken(token);
+    return decoded.userId;
+  }
 }

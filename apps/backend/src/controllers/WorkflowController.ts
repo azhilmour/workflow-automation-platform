@@ -1,11 +1,14 @@
 import { WorkflowService } from '../services/WorkflowService';
+import { AuthService } from '../services/AuthService';
 import { CreateWorkflowSchema, UpdateWorkflowSchema } from '@repo/types';
 
 export class WorkflowController {
   private workflowService: WorkflowService;
+  private authService: AuthService;
 
-  constructor() {
+  constructor(authService: AuthService) {
     this.workflowService = new WorkflowService();
+    this.authService = authService;
   }
 
   private async parseJsonBody(request: Request): Promise<any> {
@@ -16,18 +19,6 @@ export class WorkflowController {
     }
   }
 
-  private getUserIdFromRequest(request: Request): string {
-    // TODO: Extract user ID from JWT token or session
-    // For now, we'll use a placeholder - this should be implemented with proper auth
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new Error('Authorization header missing or invalid');
-    }
-    
-    // This is a placeholder - in a real implementation, you'd decode the JWT token
-    // and extract the user ID from it
-    return '00000000-0000-0000-0000-000000000000';
-  }
 
   private createErrorResponse(message: string, status: number = 400): Response {
     return new Response(
@@ -51,7 +42,7 @@ export class WorkflowController {
 
   async createWorkflow(request: Request): Promise<Response> {
     try {
-      const userId = this.getUserIdFromRequest(request);
+      const userId = await this.authService.getUserIdFromRequest(request);
       const body = await this.parseJsonBody(request);
       
       const validatedData = CreateWorkflowSchema.parse(body);
@@ -77,7 +68,7 @@ export class WorkflowController {
 
   async getAllWorkflows(request: Request): Promise<Response> {
     try {
-      const userId = this.getUserIdFromRequest(request);
+      const userId = await this.authService.getUserIdFromRequest(request);
       const workflows = await this.workflowService.getAllWorkflows(userId);
       
       return this.createSuccessResponse({ workflows });
@@ -92,7 +83,7 @@ export class WorkflowController {
 
   async getWorkflowById(request: Request, id: string): Promise<Response> {
     try {
-      const userId = this.getUserIdFromRequest(request);
+      const userId = await this.authService.getUserIdFromRequest(request);
       const workflowId = parseInt(id, 10);
       
       if (isNaN(workflowId)) {
@@ -117,7 +108,7 @@ export class WorkflowController {
 
   async updateWorkflow(request: Request, id: string): Promise<Response> {
     try {
-      const userId = this.getUserIdFromRequest(request);
+      const userId = await this.authService.getUserIdFromRequest(request);
       const workflowId = parseInt(id, 10);
       
       if (isNaN(workflowId)) {
@@ -153,7 +144,7 @@ export class WorkflowController {
 
   async deleteWorkflow(request: Request, id: string): Promise<Response> {
     try {
-      const userId = this.getUserIdFromRequest(request);
+      const userId = await this.authService.getUserIdFromRequest(request);
       const workflowId = parseInt(id, 10);
       
       if (isNaN(workflowId)) {

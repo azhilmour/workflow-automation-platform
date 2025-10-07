@@ -1,11 +1,14 @@
-import { initializeDatabase } from '@repo/db';
-import { AuthController, WorkflowController } from './controllers';
+import { initializeDatabase, AppDataSource, CredentialsEntity } from '@repo/db';
+import { AuthController, WorkflowController, CredentialsController } from './controllers';
+import { AuthService } from './services/AuthService';
 
 // Initialize database connection
 await initializeDatabase();
 
+const authService = new AuthService();
 const authController = new AuthController();
-const workflowController = new WorkflowController();
+const workflowController = new WorkflowController(authService);
+const credentialsController = new CredentialsController(AppDataSource.getRepository(CredentialsEntity), authService);
 
 // CORS headers
 const corsHeaders = {
@@ -98,6 +101,58 @@ const routes = {
         return addCorsHeaders(response);
       } catch (error) {
         console.error('Delete workflow error:', error);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Internal Server Error',
+            message: error instanceof Error ? error.message : 'Unknown error'
+          }),
+          { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+    },
+  },
+
+  // Credentials routes with per-HTTP method handlers
+  '/api/credentials': {
+    POST: async (request: Request) => {
+      const response = await credentialsController.create(request);
+      return addCorsHeaders(response);
+    },
+    GET: async (request: Request) => {
+      const response = await credentialsController.getByUserId(request);
+      return addCorsHeaders(response);
+    },
+  },
+
+  // Dynamic credentials by ID routes with per-HTTP method handlers
+  '/api/credentials/:id': {
+    PUT: async (request: Request) => {
+      const url = new URL(request.url);
+      const credentialsId = url.pathname.split('/').pop()!;
+      
+      try {
+        const response = await credentialsController.update(request, credentialsId);
+        return addCorsHeaders(response);
+      } catch (error) {
+        console.error('Update credentials error:', error);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Internal Server Error',
+            message: error instanceof Error ? error.message : 'Unknown error'
+          }),
+          { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+        );
+      }
+    },
+    DELETE: async (request: Request) => {
+      const url = new URL(request.url);
+      const credentialsId = url.pathname.split('/').pop()!;
+      
+      try {
+        const response = await credentialsController.delete(request, credentialsId);
+        return addCorsHeaders(response);
+      } catch (error) {
+        console.error('Delete credentials error:', error);
         return new Response(
           JSON.stringify({ 
             error: 'Internal Server Error',

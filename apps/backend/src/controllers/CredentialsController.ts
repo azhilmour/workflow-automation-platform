@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
 import { CredentialsEntity } from '@repo/db';
 import { CredentialsService } from '../services';
+import { AuthService } from '../services/AuthService';
 import { 
   CreateCredentialsSchema,
   UpdateCredentialsSchema,
@@ -13,13 +14,16 @@ import {
 
 export class CredentialsController {
   private credentialsService: CredentialsService;
+  private authService: AuthService;
 
-  constructor(credentialsRepository: Repository<CredentialsEntity>) {
+  constructor(credentialsRepository: Repository<CredentialsEntity>, authService: AuthService) {
     this.credentialsService = new CredentialsService(credentialsRepository);
+    this.authService = authService;
   }
 
   async create(request: Request): Promise<Response> {
     try {
+      const userId = await this.authService.getUserIdFromRequest(request);
       const body = await request.json();
       
       // Validate request body using Zod schema
@@ -39,7 +43,7 @@ export class CredentialsController {
         );
       }
 
-      const validatedData: CreateCredentialsInput = validationResult.data;
+      const validatedData: CreateCredentialsInput = { ...validationResult.data, userId };
       const result = await this.credentialsService.create(validatedData);
       
       const response: ApiResponse<CredentialsResponse> = {
@@ -71,8 +75,9 @@ export class CredentialsController {
     }
   }
 
-  async getById(request: Request, id: string, userId: string): Promise<Response> {
+  async getById(request: Request, id: string): Promise<Response> {
     try {
+      const userId = await this.authService.getUserIdFromRequest(request);
       const credentialsId = parseInt(id);
       
       if (isNaN(credentialsId)) {
@@ -126,8 +131,9 @@ export class CredentialsController {
     }
   }
 
-  async getByUserId(request: Request, userId: string): Promise<Response> {
+  async getByUserId(request: Request): Promise<Response> {
     try {
+      const userId = await this.authService.getUserIdFromRequest(request);
       const url = new URL(request.url);
       const page = parseInt(url.searchParams.get('page') || '1');
       const limit = parseInt(url.searchParams.get('limit') || '10');
@@ -173,8 +179,9 @@ export class CredentialsController {
     }
   }
 
-  async getByFor(request: Request, forValue: string, userId: string): Promise<Response> {
+  async getByFor(request: Request, forValue: string): Promise<Response> {
     try {
+      const userId = await this.authService.getUserIdFromRequest(request);
       const result = await this.credentialsService.findByFor(forValue, userId);
       
       const response: ApiResponse<CredentialsResponse[]> = {
@@ -206,8 +213,9 @@ export class CredentialsController {
     }
   }
 
-  async update(request: Request, id: string, userId: string): Promise<Response> {
+  async update(request: Request, id: string): Promise<Response> {
     try {
+      const userId = await this.authService.getUserIdFromRequest(request);
       const credentialsId = parseInt(id);
       
       if (isNaN(credentialsId)) {
@@ -281,8 +289,9 @@ export class CredentialsController {
     }
   }
 
-  async delete(request: Request, id: string, userId: string): Promise<Response> {
+  async delete(request: Request, id: string): Promise<Response> {
     try {
+      const userId = await this.authService.getUserIdFromRequest(request);
       const credentialsId = parseInt(id);
       
       if (isNaN(credentialsId)) {
