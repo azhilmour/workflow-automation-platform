@@ -5,6 +5,7 @@ import { ExecutionContext } from './ExecutionContext';
 import type { IExecutionContext, INodeExecutionResult } from '@repo/types';
 import { ExecutionService } from '../services/ExecutionService';
 import { WorkflowService } from '../services/WorkflowService';
+import { NodeExecutorFactory } from '../executors/NodeExecutorFactory';
 
 export class ExecutionEngine {
   public executionService: ExecutionService;
@@ -133,12 +134,11 @@ export class ExecutionEngine {
     console.log(`Executing node: ${node.name} (${node.type})`);
 
     try {
-      // TODO: Get appropriate node executor based on node.type
-      // For now, return a placeholder result
-      const result: INodeExecutionResult = {
-        success: true,
-        output: inputData,
-      };
+      // Get appropriate node executor based on node.type
+      const executor = NodeExecutorFactory.getExecutor(node);
+
+      // Execute the node
+      const result = await executor.execute(node, context, inputData);
 
       // Store output in context
       context.nodeOutputs.set(node.id, result.output);
@@ -148,9 +148,10 @@ export class ExecutionEngine {
         nodeId: node.id,
         nodeName: node.name,
         nodeType: node.type,
-        status: 'SUCCESS',
+        status: result.success ? 'SUCCESS' : 'FAILED',
         input: inputData,
         output: result.output,
+        error: result.error,
         startedAt: new Date(startTime),
         completedAt: new Date(),
         executionTime: Date.now() - startTime,
