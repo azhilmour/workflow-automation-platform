@@ -1,0 +1,152 @@
+---
+globs: packages/db/src/entities/*.ts
+description: Guidelines for creating and modifying database entities
+---
+# Database Entity Guidelines
+
+## Entity Structure
+
+### Always extend BaseEntity
+All entities must extend [BaseEntity](mdc:packages/db/src/entities/BaseEntity.ts) which provides:
+- `createdAt` timestamp
+- `updatedAt` timestamp
+
+```typescript
+import { BaseEntity } from './BaseEntity';
+
+@Entity('table_name')
+export class MyEntity extends BaseEntity {
+  // ... entity fields
+}
+```
+
+### Use TypeORM decorators properly
+```typescript
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('workflows')
+export class WorkflowEntity extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ length: 128 })
+  name!: string;
+
+  @Column('jsonb')
+  nodes!: INode[];
+
+  @Column({ nullable: true })
+  optionalField?: string;
+}
+```
+
+## Column Types
+
+### Use appropriate PostgreSQL types
+- **Strings**: `@Column({ length: N })` for VARCHAR
+- **Text**: `@Column('text')` for long text
+- **Numbers**: `@Column()` (defaults to INTEGER)
+- **JSON**: `@Column('jsonb')` for structured data
+- **Enums**: `@Column({ type: 'enum', enum: MyEnum })`
+- **Dates**: `@Column()` for timestamp
+- **Booleans**: `@Column({ default: false })`
+
+### Use JSONB for flexible data
+```typescript
+@Column('jsonb')
+nodes!: INode[];
+
+@Column('jsonb')
+connections!: IConnections;
+
+@Column('jsonb')
+parameters!: Record<string, any>;
+```
+
+## Relationships
+
+### Define relationships explicitly
+```typescript
+@ManyToOne(() => WorkflowEntity, { eager: true })
+workflow!: WorkflowEntity;
+
+@OneToMany(() => ExecutionEntity, execution => execution.workflow)
+executions!: ExecutionEntity[];
+```
+
+## Enums
+
+### Define enums in entity file or types package
+```typescript
+export enum WorkflowStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ARCHIVED = 'ARCHIVED'
+}
+
+@Column({
+  type: 'enum',
+  enum: WorkflowStatus,
+  default: WorkflowStatus.INACTIVE
+})
+status!: WorkflowStatus;
+```
+
+## Field Naming
+
+### Use camelCase for entity properties
+```typescript
+// Good
+triggerCount!: number;
+nodeExecutions!: INodeExecution[];
+
+// Bad
+trigger_count!: number;
+```
+
+### Database column names use snake_case
+TypeORM will automatically convert camelCase to snake_case:
+- `triggerCount` → `trigger_count`
+- `createdAt` → `created_at`
+
+## Non-null Assertion
+
+### Use `!` for required fields
+```typescript
+@Column()
+name!: string;  // Required, non-null
+```
+
+### Use `?` for optional fields
+```typescript
+@Column({ nullable: true })
+description?: string;  // Optional, nullable
+```
+
+## Registration
+
+### Always register new entities in DataSource
+Update [packages/db/src/config/database.ts](mdc:packages/db/src/config/database.ts):
+
+```typescript
+entities: [
+  User,
+  WorkflowEntity,
+  CredentialsEntity,
+  WebhookEntity,
+  WorkflowExecutionEntity,
+  MyNewEntity,  // Add your entity
+]
+```
+
+### Export from index
+Update [packages/db/src/entities/index.ts](mdc:packages/db/src/entities/index.ts):
+
+```typescript
+export { MyNewEntity } from './MyNewEntity';
+```
+
+## Examples
+- Simple entity: [WebhookEntity](mdc:packages/db/src/entities/WebhookEntity.ts)
+- Complex entity: [WorkflowEntity](mdc:packages/db/src/entities/WorkflowEntity.ts)
+- With enums: [WorkflowExecutionEntity](mdc:packages/db/src/entities/WorkflowExecutionEntity.ts)

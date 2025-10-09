@@ -1,0 +1,187 @@
+---
+description: How to use the expression resolution system for dynamic parameters
+---
+# Expression Resolution System
+
+## Overview
+The [ExpressionResolver](mdc:apps/executor/src/utils/ExpressionResolver.ts) enables dynamic parameter resolution in workflow nodes using template expressions.
+
+## Expression Syntax
+
+### Access Trigger Data
+```typescript
+// Access top-level field
+"{{context.email}}"
+"{{$trigger.body.email}}"
+
+// Access nested field
+"{{context.user.address.city}}"
+```
+
+### Access Previous Node Output
+```typescript
+// Access node output by ID
+"{{$node.http_001.body.id}}"
+"{{$node.condition_check.selectedOutput}}"
+
+// Access nested properties
+"{{$node.api_call.data.user.name}}"
+```
+
+### Access Input Data
+```typescript
+// Access input from previous node
+"{{$json.fieldName}}"
+"{{$json.data.id}}"
+```
+
+## Using in Node Executors
+
+### Resolve All Parameters
+```typescript
+import { ExpressionResolver } from '../utils/ExpressionResolver';
+
+// In your executor's execute method:
+const resolvedParams = ExpressionResolver.resolveParameters(
+  node.parameters,
+  context,
+  inputData
+);
+
+// Now use resolvedParams instead of node.parameters
+const { url, body } = resolvedParams;
+```
+
+### Single Expression vs Embedded
+```typescript
+// Single expression - returns actual value (any type)
+"{{context.age}}"  // Returns: 25 (number)
+
+// Embedded expression - returns string
+"User age is {{context.age}}"  // Returns: "User age is 25" (string)
+```
+
+## Expression Resolution Behavior
+
+### Nested Objects
+Expressions work in nested objects:
+```typescript
+{
+  "url": "https://api.example.com/users/{{context.userId}}",
+  "body": {
+    "name": "{{context.name}}",
+    "email": "{{context.email}}"
+  },
+  "headers": {
+    "X-User-Id": "{{context.userId}}"
+  }
+}
+```
+
+### Arrays
+Expressions work in arrays:
+```typescript
+{
+  "recipients": ["{{context.email}}", "admin@example.com"],
+  "tags": ["user-{{context.userId}}", "{{context.role}}"]
+}
+```
+
+### Type Coercion
+- Numbers: `"{{context.age}}"` preserves number type if single expression
+- Strings: Embedded expressions always return strings
+- Booleans: Preserved for single expressions
+- Objects/Arrays: Passed through
+
+### Undefined Values
+- Missing fields return `undefined`
+- Expression stays unchanged if resolution fails
+- No errors thrown - graceful degradation
+
+## Check for Expressions
+
+### Before Processing
+```typescript
+if (ExpressionResolver.hasExpressions(value)) {
+  // Contains expressions like {{...}}
+}
+```
+
+## Common Patterns
+
+### Dynamic URLs
+```typescript
+{
+  "url": "https://api.example.com/users/{{context.userId}}/posts"
+}
+```
+
+### Conditional Content
+```typescript
+{
+  "message": "Hello {{context.name}}, your score is {{context.score}}"
+}
+```
+
+### Using Previous Node Data
+```typescript
+{
+  "email": "{{$node.fetch_user.body.email}}",
+  "subject": "Welcome {{$node.fetch_user.body.name}}"
+}
+```
+
+### Complex Nested Access
+```typescript
+{
+  "address": "{{$node.api_response.data.user.address.street}}"
+}
+```
+
+## Best Practices
+
+1. **Always resolve before use** - Never use `node.parameters` directly
+2. **Check resolution** - Verify important fields resolved correctly
+3. **Provide defaults** - Handle undefined values gracefully
+4. **Log resolved values** - For debugging expression issues
+5. **Test expressions** - Test with actual data before deploying
+
+## Example from HttpRequestNodeExecutor
+
+```typescript
+async execute(node: INode, context: IExecutionContext, inputData: any) {
+  // Resolve expressions
+  const resolvedParams = ExpressionResolver.resolveParameters(
+    node.parameters,
+    context,
+    inputData
+  );
+
+  // Now use resolved values
+  const { url, method, body, headers } = resolvedParams;
+  
+  this.log(node, `Making ${method} request to ${url}`);
+  
+  // url and body now have actual values, not expressions
+  const response = await fetch(url, {
+    method,
+    body: JSON.stringify(body),
+    headers
+  });
+}
+```
+
+## Debugging Expressions
+
+### Log Before and After
+```typescript
+console.log('Before resolution:', node.parameters);
+const resolved = ExpressionResolver.resolveParameters(node.parameters, context, inputData);
+console.log('After resolution:', resolved);
+```
+
+### Check Context Data
+```typescript
+console.log('Trigger data:', context.triggerData);
+console.log('Node outputs:', Object.fromEntries(context.nodeOutputs));
+```

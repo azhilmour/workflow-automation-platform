@@ -1,0 +1,71 @@
+---
+alwaysApply: true
+---
+# Workflow Automation Platform - Project Structure
+
+## Overview
+This is a monorepo workflow automation platform similar to n8n, built with Bun, TypeScript, and TypeORM.
+
+## Architecture
+
+### Monorepo Structure
+```
+apps/
+  executor/          # Workflow execution service (Bun server)
+  api/              # CRUD API for workflows (separate service)
+packages/
+  db/               # Database entities and configuration
+  types/            # Shared TypeScript types
+```
+
+### Executor Service (`apps/executor/`)
+Main workflow execution engine:
+- **Entry point**: [src/index.ts](mdc:apps/executor/src/index.ts) - Bun HTTP server with webhook handler
+- **Engine**: [src/engine/ExecutionEngine.ts](mdc:apps/executor/src/engine/ExecutionEngine.ts) - Core orchestration
+- **Executors**: `src/executors/` - Node-specific execution logic
+- **Services**: `src/services/` - Database operations (ExecutionService, WorkflowService, CredentialsService)
+- **Utils**: `src/utils/` - ExpressionResolver, ConditionEvaluator
+
+### Database Package (`packages/db/`)
+- **Entities**: [src/entities/](mdc:packages/db/src/entities) - TypeORM entities
+  - WorkflowEntity - Workflow definitions
+  - WorkflowExecutionEntity - Execution tracking
+  - WebhookEntity - Webhook mappings
+  - CredentialsEntity - User credentials
+  - User - User management
+- **Config**: [src/config/database.ts](mdc:packages/db/src/config/database.ts) - TypeORM DataSource
+
+### Types Package (`packages/types/`)
+- **Interfaces**: [src/interfaces/](mdc:packages/types/src/interfaces)
+  - node-connections.ts - Node and connection types
+  - workflow-execution.ts - Execution types, node executors, conditions
+
+## Key Concepts
+
+### Node Executors
+All node types implement the executor pattern:
+- Extend [BaseNodeExecutor](mdc:apps/executor/src/executors/BaseNodeExecutor.ts)
+- Implement `execute(node, context, inputData)` method
+- Return `INodeExecutionResult` with success/output/error
+- Registered in [NodeExecutorFactory](mdc:apps/executor/src/executors/NodeExecutorFactory.ts)
+
+### Expression Resolution
+Dynamic parameters use expressions:
+- `{{context.field}}` - Access trigger data
+- `{{$node.nodeId.field}}` - Access previous node output
+- `{{$json.field}}` - Access input from previous node
+- Resolved by [ExpressionResolver](mdc:apps/executor/src/utils/ExpressionResolver.ts)
+
+### Execution Flow
+1. Webhook triggers workflow via `/webhook/handler/:id`
+2. ExecutionEngine creates execution context
+3. Executes trigger node
+4. Follows connections to execute next nodes
+5. Handles parallel execution and conditional branching
+6. Tracks execution in database
+
+## Documentation
+- Complete design: [DESIGN.md](mdc:apps/executor/DESIGN.md)
+- Phase summaries: PHASE1-4_SUMMARY.md in apps/executor/
+- Example workflows: EXAMPLE_WORKFLOWS*.md
+- Completion summary: [V0_COMPLETE.md](mdc:apps/executor/V0_COMPLETE.md)

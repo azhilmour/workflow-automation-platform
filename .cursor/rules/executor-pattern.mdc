@@ -1,0 +1,102 @@
+---
+description: Guide for implementing new node executors in the workflow automation platform
+---
+# Node Executor Implementation Pattern
+
+## Creating a New Node Executor
+
+### 1. Extend BaseNodeExecutor
+All node executors must extend [BaseNodeExecutor](mdc:apps/executor/src/executors/BaseNodeExecutor.ts):
+
+```typescript
+import type { INode, IExecutionContext, INodeExecutionResult } from '@repo/types';
+import { BaseNodeExecutor } from './BaseNodeExecutor';
+import { ExpressionResolver } from '../utils/ExpressionResolver';
+
+export class MyNodeExecutor extends BaseNodeExecutor {
+  async execute(
+    node: INode,
+    context: IExecutionContext,
+    inputData: any
+  ): Promise<INodeExecutionResult> {
+    try {
+      this.log(node, 'Executing my node');
+      
+      // 1. Resolve expressions in parameters
+      const resolvedParams = ExpressionResolver.resolveParameters(
+        node.parameters,
+        context,
+        inputData
+      );
+      
+      // 2. Validate required parameters
+      this.validateParameters(node, ['requiredParam1', 'requiredParam2']);
+      
+      // 3. Execute node logic
+      const result = await this.doWork(resolvedParams);
+      
+      // 4. Return success
+      return this.success(result);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.log(node, `Error: ${errorMessage}`);
+      return this.failure(error instanceof Error ? error : new Error(errorMessage));
+    }
+  }
+  
+  private async doWork(params: any): Promise<any> {
+    // Your node logic here
+  }
+}
+```
+
+### 2. Register in NodeExecutorFactory
+Add your executor to [NodeExecutorFactory](mdc:apps/executor/src/executors/NodeExecutorFactory.ts):
+
+```typescript
+import { MyNodeExecutor } from './MyNodeExecutor';
+
+// In createExecutor method:
+case NodeType.MY_NODE:
+case 'myNode':
+  return new MyNodeExecutor();
+```
+
+### 3. Add Node Type to Types Package
+Update [packages/types/src/interfaces/workflow-execution.ts](mdc:packages/types/src/interfaces/workflow-execution.ts):
+
+```typescript
+export enum NodeType {
+  // ... existing types
+  MY_NODE = 'myNode',
+}
+```
+
+## Available Helper Methods
+
+### From BaseNodeExecutor
+- `validateParameters(node, requiredParams)` - Validate required parameters exist
+- `success(output)` - Create success result
+- `failure(error)` - Create failure result
+- `log(node, message)` - Log with node context
+
+### Expression Resolution
+- `ExpressionResolver.resolveParameters(params, context, inputData)` - Resolve all expressions
+- `ExpressionResolver.hasExpressions(value)` - Check if value contains expressions
+
+## Best Practices
+
+1. **Always resolve expressions** before using parameters
+2. **Validate parameters** at the start of execution
+3. **Use try-catch** for error handling
+4. **Log important steps** with this.log()
+5. **Handle continueOnFail** - ExecutionEngine handles this, just return failure
+6. **Return meaningful output** - Output flows to next nodes
+7. **Support credentials** if needed - Use CredentialsService
+
+## Examples
+- Simple: [TriggerNodeExecutor](mdc:apps/executor/src/executors/TriggerNodeExecutor.ts)
+- HTTP: [HttpRequestNodeExecutor](mdc:apps/executor/src/executors/HttpRequestNodeExecutor.ts)
+- With Credentials: [EmailNodeExecutor](mdc:apps/executor/src/executors/EmailNodeExecutor.ts)
+- Conditional: [ConditionNodeExecutor](mdc:apps/executor/src/executors/ConditionNodeExecutor.ts)

@@ -1,0 +1,208 @@
+---
+description: How to test and debug workflows in the execution engine
+---
+# Testing and Debugging Workflows
+
+## Testing a Workflow
+
+### 1. Create Workflow and Webhook
+First ensure the workflow exists in database with a webhook entry:
+
+```sql
+-- Create webhook linking to workflow
+INSERT INTO webhooks (id, method, "headersToMatch", "workflowId", "nodeId", "createdAt", "updatedAt")
+VALUES ('my_webhook_id', 'POST', '{}', 1, 'trigger_node_id', NOW(), NOW());
+```
+
+### 2. Trigger the Workflow
+```bash
+curl -X POST http://localhost:3000/webhook/handler/my_webhook_id \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User",
+    "email": "test@example.com",
+    "score": 95
+  }'
+```
+
+### 3. Check Execution Result
+```bash
+# Response includes executionId
+curl http://localhost:3000/executions/<EXECUTION_ID>
+```
+
+## Monitoring Execution
+
+### Check Logs
+The executor logs detailed information:
+```
+Executing node: Webhook Trigger (trigger)
+[trigger:Webhook Trigger] Processing trigger node
+Executing node: Check Score (condition)
+[condition:Check Score] Evaluating conditions
+Conditional node: following output 0
+Executing node: Send Email (sendEmail)
+[sendEmail:Send Email] Sending email
+```
+
+### Execution Status
+Check the execution record:
+```json
+{
+  "id": "uuid",
+  "status": "COMPLETED",
+  "nodeExecutions": [
+    {
+      "nodeId": "trigger_001",
+      "status": "SUCCESS",
+      "executionTime": 5
+    },
+    {
+      "nodeId": "condition_001",
+      "status": "SUCCESS",
+      "output": {
+        "selectedOutput": 0
+      }
+    }
+  ]
+}
+```
+
+## Debugging Common Issues
+
+### Webhook Not Found
+**Error**: `Webhook not found: abc123`
+
+**Solution**:
+- Verify webhook exists in database
+- Check webhook ID matches URL
+- Ensure workflow is ACTIVE
+
+### Expression Not Resolving
+**Symptom**: Field shows `{{context.email}}` instead of actual value
+
+**Debug**:
+1. Check trigger data was received:
+```typescript
+console.log('Trigger data:', context.triggerData);
+```
+
+2. Verify expression syntax:
+```typescript
+// Correct
+"{{context.email}}"
+
+// Wrong
+"{{email}}"
+"${{context.email}}"
+```
+
+3. Check field exists in trigger data
+
+### Node Execution Failed
+**Check**:
+1. Node execution in database shows error
+2. Logs show error message
+3. Check `continueOnFail` setting
+
+### Condition Not Working
+**Debug**:
+1. Check condition evaluation logs
+2. Verify field path is correct
+3. Check operator and value types match
+4. Test with simple hardcoded values first
+
+### Credentials Not Found
+**Error**: `Credential not found: 1`
+
+**Solution**:
+- Verify credential exists in database
+- Check credential ID in node matches database
+- Verify userId matches
+- Check credential type (`for` field)
+
+## Testing Different Paths
+
+### Test All Condition Branches
+```bash
+# Test high score (output 0)
+curl ... -d '{"score": 95}'
+
+# Test low score (output 1)
+curl ... -d '{"score": 75}'
+
+# Test edge case (output 1)
+curl ... -d '{"score": 90}'
+```
+
+### Test Error Handling
+```bash
+# Missing required field
+curl ... -d '{"name": "Test"}'  # Missing email
+
+# Invalid credential ID
+# Temporarily change credential ID in workflow
+
+# Network error (HTTP node)
+# Use invalid URL
+```
+
+## Useful Queries
+
+### List Recent Executions
+```sql
+SELECT id, status, "startedAt", "completedAt", error
+FROM workflow_executions
+ORDER BY "startedAt" DESC
+LIMIT 10;
+```
+
+### Count Executions by Status
+```sql
+SELECT status, COUNT(*)
+FROM workflow_executions
+WHERE "workflowId" = 1
+GROUP BY status;
+```
+
+### Find Failed Executions
+```sql
+SELECT id, error, "startedAt"
+FROM workflow_executions
+WHERE status = 'FAILED'
+ORDER BY "startedAt" DESC;
+```
+
+## Example Workflows
+
+See detailed examples in:
+- [EXAMPLE_WORKFLOWS.md](mdc:apps/executor/EXAMPLE_WORKFLOWS.md) - HTTP workflows
+- [EXAMPLE_WORKFLOWS_PHASE3.md](mdc:apps/executor/EXAMPLE_WORKFLOWS_PHASE3.md) - Email/Telegram
+- [EXAMPLE_WORKFLOWS_PHASE4.md](mdc:apps/executor/EXAMPLE_WORKFLOWS_PHASE4.md) - Conditional workflows
+
+## Performance Testing
+
+### Load Testing
+```bash
+# Run multiple requests
+for i in {1..100}; do
+  curl -X POST http://localhost:3000/webhook/handler/my_webhook \
+    -H "Content-Type: application/json" \
+    -d '{"test": "data"}' &
+done
+wait
+```
+
+### Check Execution Times
+```sql
+SELECT
+  AVG("executionTime") as avg_time,
+  MAX("executionTime") as max_time,
+  MIN("executionTime") as min_time
+FROM (
+  SELECT
+    jsonb_array_elements("nodeExecutions") ->> 'executionTime' as "executionTime"
+  FROM workflow_executions
+  WHERE "workflowId" = 1
+) times;
+```

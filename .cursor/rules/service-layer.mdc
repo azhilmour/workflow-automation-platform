@@ -1,0 +1,212 @@
+---
+globs: apps/executor/src/services/*.ts
+description: Guidelines for implementing services in the executor application
+---
+# Service Layer Guidelines
+
+## Service Structure
+
+### Services Handle Database Operations
+Services in [apps/executor/src/services/](mdc:apps/executor/src/services) manage all database interactions using TypeORM repositories.
+
+### Standard Service Pattern
+```typescript
+import { AppDataSource } from '@repo/db';
+import { MyEntity } from '@repo/db';
+import { Repository } from 'typeorm';
+
+export class MyService {
+  private repository: Repository<MyEntity>;
+
+  constructor() {
+    this.repository = AppDataSource.getRepository(MyEntity);
+  }
+
+  async getById(id: number): Promise<MyEntity | null> {
+    return this.repository.findOne({
+      where: { id }
+    });
+  }
+
+  async create(data: Partial<MyEntity>): Promise<MyEntity> {
+    const entity = this.repository.create(data);
+    return this.repository.save(entity);
+  }
+
+  async update(id: number, data: Partial<MyEntity>): Promise<void> {
+    await this.repository.update(id, data);
+  }
+
+  async delete(id: number): Promise<void> {
+    await this.repository.delete(id);
+  }
+}
+```
+
+## Existing Services
+
+### ExecutionService
+[ExecutionService](mdc:apps/executor/src/services/ExecutionService.ts) - Manages workflow executions:
+- `createExecution()` - Create new execution record
+- `getExecution()` - Get execution by ID
+- `getExecutionsByWorkflow()` - List executions for workflow
+- `addNodeExecution()` - Record node execution result
+- `completeExecution()` - Mark execution as completed/failed
+- `updateStatus()` - Update execution status
+
+### WorkflowService
+[WorkflowService](mdc:apps/executor/src/services/WorkflowService.ts) - Manages workflows and webhooks:
+- `getWorkflowById()` - Load workflow
+- `getWebhookById()` - Get webhook with workflow
+- `incrementTriggerCount()` - Track workflow triggers
+- `isWorkflowActive()` - Check workflow status
+
+### CredentialsService
+[CredentialsService](mdc:apps/executor/src/services/CredentialsService.ts) - Manages credentials:
+- `getCredentials()` - Get and decrypt credentials by ID
+- `getCredentialsByType()` - Get credentials by type
+- `decrypt()` - Decrypt credential data
+
+## Best Practices
+
+### 1. Use Repository Pattern
+Always use TypeORM repositories, not direct database queries:
+```typescript
+// Good
+this.repository.findOne({ where: { id } })
+
+// Bad
+await AppDataSource.query('SELECT * FROM ...')
+```
+
+### 2. Initialize Repository in Constructor
+```typescript
+constructor() {
+  this.repository = AppDataSource.getRepository(MyEntity);
+}
+```
+
+### 3. Handle Null Returns
+TypeORM may return `null`, handle appropriately:
+```typescript
+async getEntity(id: number): Promise<MyEntity | null> {
+  return this.repository.findOne({ where: { id } });
+}
+```
+
+### 4. Throw Errors for Not Found
+When entity must exist:
+```typescript
+async getEntityOrFail(id: number): Promise<MyEntity> {
+  const entity = await this.repository.findOne({ where: { id } });
+  if (!entity) {
+    throw new Error(`Entity not found: ${id}`);
+  }
+  return entity;
+}
+```
+
+### 5. User Authorization
+Always verify user access:
+```typescript
+async getCredentials(credentialId: number, userId: string): Promise<any> {
+  const credential = await this.repository.findOne({
+    where: { id: credentialId }
+  });
+
+  if (!credential) {
+    throw new Error(`Credential not found: ${credentialId}`);
+  }
+
+  // Verify user has access
+  if (credential.userId !== userId) {
+    throw new Error('Unauthorized access to credential');
+  }
+
+  return this.decrypt(credential.data);
+}
+```
+
+### 6. Async/Await
+All repository operations are async:
+```typescript
+async myMethod(): Promise<void> {
+  const entity = await this.repository.findOne(...);
+  await this.repository.save(entity);
+}
+```
+
+### 7. Transaction Support (When Needed)
+For complex operations:
+```typescript
+async complexOperation(): Promise<void> {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    // Multiple operations
+    await queryRunner.commitTransaction();
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    throw error;
+  } finally {
+    await queryRunner.release();
+  }
+}
+```
+
+## Service Usage in Executors
+
+### Instantiate Services in Constructor
+```typescript
+export class MyNodeExecutor extends BaseNodeExecutor {
+  private credentialsService: CredentialsService;
+
+  constructor() {
+    super();
+    this.credentialsService = new CredentialsService();
+  }
+
+  async execute(...) {
+    const credentials = await this.credentialsService.getCredentials(
+      credentialId,
+      context.userId
+    );
+  }
+}
+```
+
+### Don't Create Services Multiple Times
+```typescript
+// Good - service created once
+constructor() {
+  this.myService = new MyService();
+}
+
+// Bad - service created on every execution
+async execute(...) {
+  const myService = new MyService();
+}
+```
+
+## Error Handling
+
+### Throw Errors, Don't Return Nulls for Critical Paths
+```typescript
+// Good - caller knows something went wrong
+if (!entity) {
+  throw new Error('Entity required but not found');
+}
+
+// Bad - caller might not check
+if (!entity) {
+  return null;
+}
+```
+
+### Use Descriptive Error Messages
+```typescript
+throw new Error(`Workflow ${workflowId} not found`);
+throw new Error(`Unauthorized access to credential ${credentialId}`);
+```

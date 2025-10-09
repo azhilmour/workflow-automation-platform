@@ -1,0 +1,143 @@
+---
+globs: *.ts,*.tsx
+---
+# TypeScript Standards for Workflow Automation Platform
+
+## Import Organization
+1. Type imports from external packages first
+2. Local type imports second
+3. Implementation imports last
+4. Use `type` keyword for type-only imports
+
+```typescript
+import type { INode } from '@repo/types';
+import type { IExecutionContext, INodeExecutionResult } from '@repo/types';
+import { BaseNodeExecutor } from './BaseNodeExecutor';
+import { ExpressionResolver } from '../utils/ExpressionResolver';
+```
+
+## Type Safety
+
+### Always use proper types from @repo/types
+```typescript
+// Good
+import type { INode, IExecutionContext } from '@repo/types';
+
+// Bad
+node: any
+```
+
+### Avoid 'any' except for:
+- Node parameters (intentionally flexible)
+- Input/output data (varies by node type)
+- Expression resolution results
+
+### Use explicit return types for public methods
+```typescript
+// Good
+async execute(node: INode, context: IExecutionContext, inputData: any): Promise<INodeExecutionResult> {
+  // ...
+}
+
+// Bad - missing return type
+async execute(node: INode, context: IExecutionContext, inputData: any) {
+  // ...
+}
+```
+
+## Error Handling
+
+### Always handle errors properly
+```typescript
+try {
+  // Node logic
+  return this.success(result);
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  this.log(node, `Error: ${errorMessage}`);
+  return this.failure(error instanceof Error ? error : new Error(errorMessage));
+}
+```
+
+### Don't throw errors from executors
+Executors should return failure results, not throw:
+```typescript
+// Good
+return this.failure('Something went wrong');
+
+// Bad - ExecutionEngine won't catch properly
+throw new Error('Something went wrong');
+```
+
+## Async/Await
+
+### Always use async/await, not promises directly
+```typescript
+// Good
+const result = await this.doSomething();
+
+// Bad
+this.doSomething().then(result => { ... });
+```
+
+### Mark methods as async if they use await
+```typescript
+async execute(...): Promise<INodeExecutionResult> {
+  const data = await fetch(...);
+  return this.success(data);
+}
+```
+
+## Class Structure
+
+### Order members logically
+1. Public properties
+2. Private properties
+3. Constructor
+4. Public methods
+5. Private methods
+
+### Use private for internal methods
+```typescript
+export class MyExecutor extends BaseNodeExecutor {
+  private credentialsService: CredentialsService;
+  
+  constructor() {
+    super();
+    this.credentialsService = new CredentialsService();
+  }
+  
+  async execute(...): Promise<INodeExecutionResult> {
+    // Public method
+  }
+  
+  private async doInternalWork(): Promise<void> {
+    // Private method
+  }
+}
+```
+
+## Comments
+
+### Use JSDoc for public APIs
+```typescript
+/**
+ * Email Node Executor
+ * 
+ * Sends emails using the Resend API.
+ * Requires Resend API credentials to be configured by the user.
+ */
+export class EmailNodeExecutor extends BaseNodeExecutor {
+```
+
+### Add inline comments for complex logic
+```typescript
+// Check if this is a conditional node with a selected output
+if (outputData && typeof outputData === 'object' && 'selectedOutput' in outputData) {
+  selectedOutputIndex = outputData.selectedOutput;
+  isConditional = true;
+}
+```
+
+## No Semicolons
+This project doesn't use semicolons - follow the established style.
