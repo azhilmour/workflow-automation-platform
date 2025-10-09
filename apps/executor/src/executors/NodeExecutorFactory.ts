@@ -3,6 +3,8 @@ import type { INodeExecutor } from '@repo/types';
 import { NodeType } from '@repo/types';
 import { TriggerNodeExecutor } from './TriggerNodeExecutor';
 import { HttpRequestNodeExecutor } from './HttpRequestNodeExecutor';
+import { EmailNodeExecutor } from './EmailNodeExecutor';
+import { TelegramNodeExecutor } from './TelegramNodeExecutor';
 
 /**
  * Node Executor Factory
@@ -43,11 +45,17 @@ export class NodeExecutorFactory {
       case 'httpRequest':
         return new HttpRequestNodeExecutor();
 
-      // TODO: Add more executors in Phase 3
-      // case NodeType.SEND_EMAIL:
-      //   return new EmailNodeExecutor();
-      // case NodeType.SEND_TELEGRAM:
-      //   return new TelegramNodeExecutor();
+      case NodeType.SEND_EMAIL:
+      case 'sendEmail':
+      case 'email':
+        return new EmailNodeExecutor();
+
+      case NodeType.SEND_TELEGRAM:
+      case 'sendTelegram':
+      case 'telegram':
+        return new TelegramNodeExecutor();
+
+      // TODO: Add condition executor in Phase 4
       // case NodeType.CONDITION:
       //   return new ConditionNodeExecutor();
 
