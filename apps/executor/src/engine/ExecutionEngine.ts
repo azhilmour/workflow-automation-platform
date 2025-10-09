@@ -209,12 +209,29 @@ export class ExecutionEngine {
       return;
     }
 
-    // Get all connections from the 'main' output
-    const mainConnections = connections.main[0];
+    // Check if this is a conditional node with a selected output
+    let selectedOutputIndex = 0;
+    let isConditional = false;
+
+    if (outputData && typeof outputData === 'object' && 'selectedOutput' in outputData) {
+      selectedOutputIndex = outputData.selectedOutput;
+      isConditional = true;
+      console.log(`Conditional node: following output ${selectedOutputIndex}`);
+    }
+
+    // Get connections from the selected output (or default to first output)
+    const mainConnections = connections.main[selectedOutputIndex];
     
     if (!mainConnections || mainConnections.length === 0) {
+      console.log(`No connections for output ${selectedOutputIndex}`);
       return;
     }
+
+    // Prepare data to pass to next nodes
+    // If conditional, pass through the original input data
+    const dataToPass = isConditional && outputData.inputData 
+      ? outputData.inputData 
+      : outputData;
 
     // Execute all next nodes in parallel
     const nextNodePromises = mainConnections.map(async (connection) => {
@@ -231,7 +248,7 @@ export class ExecutionEngine {
       }
 
       // Execute the next node
-      const result = await this.executeNode(nextNode, context, outputData);
+      const result = await this.executeNode(nextNode, context, dataToPass);
 
       if (!result.success && !nextNode.continueOnFail) {
         throw new Error(

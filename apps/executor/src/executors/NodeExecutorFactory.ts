@@ -5,6 +5,7 @@ import { TriggerNodeExecutor } from './TriggerNodeExecutor';
 import { HttpRequestNodeExecutor } from './HttpRequestNodeExecutor';
 import { EmailNodeExecutor } from './EmailNodeExecutor';
 import { TelegramNodeExecutor } from './TelegramNodeExecutor';
+import { ConditionNodeExecutor } from './ConditionNodeExecutor';
 
 /**
  * Node Executor Factory
@@ -55,9 +56,10 @@ export class NodeExecutorFactory {
       case 'telegram':
         return new TelegramNodeExecutor();
 
-      // TODO: Add condition executor in Phase 4
-      // case NodeType.CONDITION:
-      //   return new ConditionNodeExecutor();
+      case NodeType.CONDITION:
+      case 'condition':
+      case 'if':
+        return new ConditionNodeExecutor();
 
       default:
         throw new Error(`Unsupported node type: ${nodeType}`);
