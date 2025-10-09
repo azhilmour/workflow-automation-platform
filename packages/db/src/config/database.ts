@@ -13,7 +13,7 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   synchronize: process.env.NODE_ENV === 'development',
-  logging: process.env.NODE_ENV === 'development',
+  logging: process.env.LOG_LEVEL === 'trace',
   entities: [User, WorkflowEntity, CredentialsEntity, WebhookEntity, WorkflowExecutionEntity],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],
