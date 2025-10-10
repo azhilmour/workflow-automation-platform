@@ -23,14 +23,12 @@ export class WorkflowRepository {
   async findById(id: number, userId: string): Promise<WorkflowEntity | null> {
     return await this.repository.findOne({
       where: { id, userId },
-      relations: ['userId'],
     });
   }
 
   async findAllByUserId(userId: string): Promise<WorkflowEntity[]> {
     return await this.repository.find({
       where: { userId },
-      relations: ['userId'],
       order: { createdAt: 'DESC' },
     });
   }
