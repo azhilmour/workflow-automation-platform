@@ -12,7 +12,8 @@ This is a monorepo workflow automation platform similar to n8n, built with Bun, 
 ```
 apps/
   executor/          # Workflow execution service (Bun server)
-  api/              # CRUD API for workflows (separate service)
+  backend/           # CRUD API for workflows (separate service)
+  web/               # Frontend
 packages/
   db/               # Database entities and configuration
   types/            # Shared TypeScript types
